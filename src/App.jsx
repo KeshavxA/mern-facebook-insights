@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { LineChart, Line, PieChart, Pie, Tooltip, XAxis, YAxis, ResponsiveContainer, Cell, Legend } from 'recharts'
+import { LineChart, Line, PieChart, Pie, BarChart, Bar, CartesianGrid, Tooltip, XAxis, YAxis, ResponsiveContainer, Cell, Legend } from 'recharts'
 import './App.css'
 
 function App() {
@@ -10,12 +10,13 @@ function App() {
   const [dailyData, setDailyData] = useState([])
   const [reactionData, setReactionData] = useState([])
   const [postsData, setPostsData] = useState([])
+  const [ageGenderData, setAgeGenderData] = useState([])
+  const [countryData, setCountryData] = useState([])
   const [loading, setLoading] = useState(false)
 
-  // Date states for insights
   const [since, setSince] = useState(() => {
     const d = new Date()
-    d.setDate(d.getDate() - 28) // Default to last 28 days
+    d.setDate(d.getDate() - 28)
     return d.toISOString().split('T')[0]
   })
   const [until, setUntil] = useState(() => new Date().toISOString().split('T')[0])
@@ -99,6 +100,7 @@ function App() {
     const url = `/${selectedPageId}/insights?metric=${metrics}&since=${since}&until=${until}&period=total_over_range&access_token=${pageAccessToken}`
     const dailyUrl = `/${selectedPageId}/insights?metric=${metrics}&since=${since}&until=${until}&period=day&access_token=${pageAccessToken}`
     const postsUrl = `/${selectedPageId}/posts?fields=id,message,created_time,full_picture,permalink_url,shares,comments.summary(total_count),likes.summary(total_count),insights.metric(post_impressions_unique,post_engaged_users)&since=${since}&until=${until}&access_token=${pageAccessToken}`
+    const demoUrl = `/${selectedPageId}/insights?metric=page_fans_gender_age,page_fans_country&access_token=${pageAccessToken}`
 
     // Fetch Lifetime Fans (Followers) separately as it doesn't support total_over_range
     const fansUrl = `/${selectedPageId}?fields=fan_count&access_token=${pageAccessToken}`
@@ -107,8 +109,9 @@ function App() {
       new Promise(resolve => window.FB.api(url, resolve)),
       new Promise(resolve => window.FB.api(fansUrl, resolve)),
       new Promise(resolve => window.FB.api(dailyUrl, resolve)),
-      new Promise(resolve => window.FB.api(postsUrl, resolve))
-    ]).then(([insightsResponse, fansResponse, dailyResponse, postsResponse]) => {
+      new Promise(resolve => window.FB.api(postsUrl, resolve)),
+      new Promise(resolve => window.FB.api(demoUrl, resolve))
+    ]).then(([insightsResponse, fansResponse, dailyResponse, postsResponse, demoResponse]) => {
       setLoading(false)
 
       if (insightsResponse && insightsResponse.data) {
@@ -118,17 +121,17 @@ function App() {
         let reactions = {}
         insightsResponse.data.forEach(item => {
           if (item.name === 'page_actions_post_reactions_total') {
-             reactions = item.values[0]?.value || {}
-             const totalReactions = typeof reactions === 'object' 
-                ? Object.values(reactions).reduce((a, b) => a + b, 0)
-                : reactions
-             result[item.name] = totalReactions
+            reactions = item.values[0]?.value || {}
+            const totalReactions = typeof reactions === 'object'
+              ? Object.values(reactions).reduce((a, b) => a + b, 0)
+              : reactions
+            result[item.name] = totalReactions
           } else {
-             result[item.name] = item.values[0]?.value || 0
+            result[item.name] = item.values[0]?.value || 0
           }
         })
         setInsights(result)
-        
+
         // Process reaction data for pie chart
         if (typeof reactions === 'object') {
           const rData = Object.keys(reactions).map(key => ({
@@ -146,13 +149,13 @@ function App() {
       if (dailyResponse && dailyResponse.data) {
         const engagements = dailyResponse.data.find(d => d.name === 'page_post_engagements')?.values || []
         const impressions = dailyResponse.data.find(d => d.name === 'page_impressions')?.values || []
-        
+
         const chartData = engagements.map((eng, index) => {
-           return {
-             date: new Date(eng.end_time).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
-             engagements: eng.value || 0,
-             impressions: impressions[index]?.value || 0
-           }
+          return {
+            date: new Date(eng.end_time).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+            engagements: eng.value || 0,
+            impressions: impressions[index]?.value || 0
+          }
         })
         setDailyData(chartData)
       }
@@ -160,28 +163,50 @@ function App() {
       // Process post-level data
       if (postsResponse && postsResponse.data) {
         let posts = postsResponse.data.map(post => {
-           const insightsArr = post.insights?.data || [];
-           const reach = insightsArr.find(i => i.name === 'post_impressions_unique')?.values[0]?.value || 0;
-           const engagement = insightsArr.find(i => i.name === 'post_engaged_users')?.values[0]?.value || 0;
-           return {
-              id: post.id,
-              message: post.message || '',
-              date: new Date(post.created_time).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }),
-              image: post.full_picture || null,
-              url: post.permalink_url,
-              likes: post.likes?.summary?.total_count || 0,
-              comments: post.comments?.summary?.total_count || 0,
-              shares: post.shares?.count || 0,
-              reach,
-              engagement
-           }
+          const insightsArr = post.insights?.data || [];
+          const reach = insightsArr.find(i => i.name === 'post_impressions_unique')?.values[0]?.value || 0;
+          const engagement = insightsArr.find(i => i.name === 'post_engaged_users')?.values[0]?.value || 0;
+          return {
+            id: post.id,
+            message: post.message || '',
+            date: new Date(post.created_time).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }),
+            image: post.full_picture || null,
+            url: post.permalink_url,
+            likes: post.likes?.summary?.total_count || 0,
+            comments: post.comments?.summary?.total_count || 0,
+            shares: post.shares?.count || 0,
+            reach,
+            engagement
+          }
         });
-        
+
         // Sort by engagement descending
         posts.sort((a, b) => b.engagement - a.engagement);
         setPostsData(posts);
       } else {
         setPostsData([]);
+      }
+
+      // Process demographic data
+      if (demoResponse && demoResponse.data) {
+        const genderAgeRaw = demoResponse.data.find(d => d.name === 'page_fans_gender_age')?.values[0]?.value || {};
+        const countryRaw = demoResponse.data.find(d => d.name === 'page_fans_country')?.values[0]?.value || {};
+
+        const ageGroups = ['13-17', '18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
+        const formattedAgeData = ageGroups.map(age => ({
+          age,
+          female: genderAgeRaw[`F.${age}`] || 0,
+          male: genderAgeRaw[`M.${age}`] || 0
+        })).filter(d => d.female > 0 || d.male > 0);
+
+        setAgeGenderData(formattedAgeData);
+
+        const countryArr = Object.keys(countryRaw).map(key => ({
+          name: key,
+          value: countryRaw[key]
+        }));
+        countryArr.sort((a, b) => b.value - a.value);
+        setCountryData(countryArr.slice(0, 6)); // Top 6 countries
       }
     })
   }
@@ -302,7 +327,7 @@ function App() {
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={dailyData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                         <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                        <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => val >= 1000 ? `${(val/1000).toFixed(1)}k` : val} />
+                        <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => val >= 1000 ? `${(val / 1000).toFixed(1)}k` : val} />
                         <Tooltip contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }} />
                         <Legend wrapperStyle={{ paddingTop: '10px' }} />
                         <Line type="monotone" dataKey="impressions" stroke="#3b82f6" strokeWidth={3} dot={false} activeDot={{ r: 6 }} name="Impressions" />
@@ -380,6 +405,63 @@ function App() {
                         </div>
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {(ageGenderData.length > 0 || countryData.length > 0) && (
+                <div className="demographics-section">
+                  <h2>Audience Demographics</h2>
+                  <div className="charts-container">
+                    <div className="chart-card">
+                      <h3>Age & Gender Distribution</h3>
+                      <div className="chart-wrapper">
+                        {ageGenderData.length > 0 ? (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={ageGenderData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                              <XAxis dataKey="age" stroke="#94a3b8" tickLine={false} axisLine={false} />
+                              <YAxis stroke="#94a3b8" tickLine={false} axisLine={false} />
+                              <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }} />
+                              <Legend wrapperStyle={{ paddingTop: '10px' }} />
+                              <Bar dataKey="female" name="Female" fill="#ec4899" radius={[4, 4, 0, 0]} />
+                              <Bar dataKey="male" name="Male" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <div className="no-data">Not enough age/gender data available.</div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="chart-card">
+                      <h3>Top Countries</h3>
+                      <div className="chart-wrapper">
+                        {countryData.length > 0 ? (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={countryData}
+                                cx="50%"
+                                cy="50%"
+                                outerRadius={80}
+                                dataKey="value"
+                                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                labelLine={false}
+                              >
+                                {countryData.map((entry, index) => {
+                                  const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+                                  return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />;
+                                })}
+                              </Pie>
+                              <Tooltip contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }} />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <div className="no-data">Not enough country data available.</div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}

@@ -302,12 +302,14 @@ input[type="date"]:focus {
   font-style: italic;
 }
 
-/* Posts Section */
-.posts-section {
+/* Posts & Demographics Sections */
+.posts-section,
+.demographics-section {
   margin-top: 2.5rem;
 }
 
-.posts-section h2 {
+.posts-section h2,
+.demographics-section h2 {
   font-size: 1.5rem;
   color: #fff;
   margin-bottom: 1.5rem;
