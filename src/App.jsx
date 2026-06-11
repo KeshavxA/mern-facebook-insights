@@ -6,10 +6,10 @@ function App() {
   const [user, setUser] = useState(null)
   const [sdkLoaded, setSdkLoaded] = useState(false)
   const [pages, setPages] = useState([])
-  const [selectedPageId, setSelectedPageId] = useState('')
   const [insights, setInsights] = useState(null)
   const [dailyData, setDailyData] = useState([])
   const [reactionData, setReactionData] = useState([])
+  const [postsData, setPostsData] = useState([])
   const [loading, setLoading] = useState(false)
 
   // Date states for insights
@@ -98,6 +98,7 @@ function App() {
 
     const url = `/${selectedPageId}/insights?metric=${metrics}&since=${since}&until=${until}&period=total_over_range&access_token=${pageAccessToken}`
     const dailyUrl = `/${selectedPageId}/insights?metric=${metrics}&since=${since}&until=${until}&period=day&access_token=${pageAccessToken}`
+    const postsUrl = `/${selectedPageId}/posts?fields=id,message,created_time,full_picture,permalink_url,shares,comments.summary(total_count),likes.summary(total_count),insights.metric(post_impressions_unique,post_engaged_users)&since=${since}&until=${until}&access_token=${pageAccessToken}`
 
     // Fetch Lifetime Fans (Followers) separately as it doesn't support total_over_range
     const fansUrl = `/${selectedPageId}?fields=fan_count&access_token=${pageAccessToken}`
@@ -105,8 +106,9 @@ function App() {
     Promise.all([
       new Promise(resolve => window.FB.api(url, resolve)),
       new Promise(resolve => window.FB.api(fansUrl, resolve)),
-      new Promise(resolve => window.FB.api(dailyUrl, resolve))
-    ]).then(([insightsResponse, fansResponse, dailyResponse]) => {
+      new Promise(resolve => window.FB.api(dailyUrl, resolve)),
+      new Promise(resolve => window.FB.api(postsUrl, resolve))
+    ]).then(([insightsResponse, fansResponse, dailyResponse, postsResponse]) => {
       setLoading(false)
 
       if (insightsResponse && insightsResponse.data) {
@@ -153,6 +155,33 @@ function App() {
            }
         })
         setDailyData(chartData)
+      }
+
+      // Process post-level data
+      if (postsResponse && postsResponse.data) {
+        let posts = postsResponse.data.map(post => {
+           const insightsArr = post.insights?.data || [];
+           const reach = insightsArr.find(i => i.name === 'post_impressions_unique')?.values[0]?.value || 0;
+           const engagement = insightsArr.find(i => i.name === 'post_engaged_users')?.values[0]?.value || 0;
+           return {
+              id: post.id,
+              message: post.message || '',
+              date: new Date(post.created_time).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }),
+              image: post.full_picture || null,
+              url: post.permalink_url,
+              likes: post.likes?.summary?.total_count || 0,
+              comments: post.comments?.summary?.total_count || 0,
+              shares: post.shares?.count || 0,
+              reach,
+              engagement
+           }
+        });
+        
+        // Sort by engagement descending
+        posts.sort((a, b) => b.engagement - a.engagement);
+        setPostsData(posts);
+      } else {
+        setPostsData([]);
       }
     })
   }
@@ -313,6 +342,47 @@ function App() {
                   </div>
                 </div>
               </div>
+
+              {postsData.length > 0 && (
+                <div className="posts-section">
+                  <h2>Recent Posts Performance</h2>
+                  <div className="posts-grid">
+                    {postsData.map((post, index) => (
+                      <div key={post.id} className={`post-card ${index === 0 ? 'top-post' : ''}`}>
+                        {index === 0 && <div className="top-badge">🌟 Top Performer</div>}
+                        {post.image && (
+                          <div className="post-image">
+                            <img src={post.image} alt="Post" />
+                          </div>
+                        )}
+                        <div className="post-content">
+                          <span className="post-date">{post.date}</span>
+                          <p>{post.message.length > 100 ? post.message.substring(0, 100) + '...' : post.message}</p>
+                          <a href={post.url} target="_blank" rel="noopener noreferrer" className="post-link">View on Facebook</a>
+                        </div>
+                        <div className="post-metrics">
+                          <div className="metric">
+                            <span className="metric-label">Reach</span>
+                            <span className="metric-value">{post.reach.toLocaleString()}</span>
+                          </div>
+                          <div className="metric">
+                            <span className="metric-label">Engagements</span>
+                            <span className="metric-value">{post.engagement.toLocaleString()}</span>
+                          </div>
+                          <div className="metric">
+                            <span className="metric-label">Likes</span>
+                            <span className="metric-value">{post.likes.toLocaleString()}</span>
+                          </div>
+                          <div className="metric">
+                            <span className="metric-label">Comments</span>
+                            <span className="metric-value">{post.comments.toLocaleString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
