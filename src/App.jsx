@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { LineChart, Line, PieChart, Pie, BarChart, Bar, CartesianGrid, Tooltip, XAxis, YAxis, ResponsiveContainer, Cell, Legend } from 'recharts'
+import jsPDF from 'jspdf'
+import html2canvas from 'html2canvas'
 import './App.css'
 
 function App() {
@@ -242,6 +244,75 @@ function App() {
     return sortConfig.direction === 'asc' ? ' ↑' : ' ↓';
   };
 
+  const exportToCSV = () => {
+    if (!postsData || postsData.length === 0) {
+      alert("No data to export");
+      return;
+    }
+    const headers = ["Date", "Post Message", "Reach", "Engagements", "Likes", "Comments", "Shares", "Post URL"];
+    const csvRows = [headers.join(",")];
+    
+    postsData.forEach(post => {
+      const safeMessage = `"${post.message.replace(/"/g, '""')}"`;
+      const row = [
+        post.date,
+        safeMessage,
+        post.reach,
+        post.engagement,
+        post.likes,
+        post.comments,
+        post.shares,
+        post.url
+      ];
+      csvRows.push(row.join(","));
+    });
+    
+    const csvContent = "data:text/csv;charset=utf-8," + csvRows.join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `facebook_insights_${since}_to_${until}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportToPDF = async () => {
+    const dashboard = document.querySelector('.dashboard');
+    if (!dashboard) {
+      alert("Dashboard not found");
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      // Temporarily hide export buttons to avoid them being in the PDF
+      const actionArea = document.querySelector('.export-actions');
+      if (actionArea) actionArea.style.display = 'none';
+
+      const canvas = await html2canvas(dashboard, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#0f172a'
+      });
+      
+      if (actionArea) actionArea.style.display = 'flex';
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`facebook_insights_${since}_to_${until}.pdf`);
+    } catch (error) {
+      console.error("PDF Export failed", error);
+      alert("Failed to export PDF.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="card">
       {!user ? (
@@ -324,6 +395,17 @@ function App() {
 
           {insights && (
             <>
+              <div className="export-actions" style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginBottom: '1.5rem' }}>
+                <button onClick={exportToCSV} className="btn-outline" disabled={loading}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle', position: 'relative', top: '-1px' }}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                  Export CSV
+                </button>
+                <button onClick={exportToPDF} className="btn-outline" disabled={loading}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle', position: 'relative', top: '-1px' }}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><polyline points="9 15 12 18 15 15"></polyline></svg>
+                  Export PDF
+                </button>
+              </div>
+
               <div className="insights-grid">
                 <div className="insight-card">
                   <span className="label">Total Followers</span>
