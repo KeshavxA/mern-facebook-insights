@@ -13,6 +13,7 @@ function App() {
   const [ageGenderData, setAgeGenderData] = useState([])
   const [countryData, setCountryData] = useState([])
   const [loading, setLoading] = useState(false)
+  const [sortConfig, setSortConfig] = useState({ key: 'rawDate', direction: 'desc' })
 
   const [since, setSince] = useState(() => {
     const d = new Date()
@@ -170,6 +171,7 @@ function App() {
             id: post.id,
             message: post.message || '',
             date: new Date(post.created_time).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }),
+            rawDate: new Date(post.created_time).getTime(),
             image: post.full_picture || null,
             url: post.permalink_url,
             likes: post.likes?.summary?.total_count || 0,
@@ -180,8 +182,6 @@ function App() {
           }
         });
 
-        // Sort by engagement descending
-        posts.sort((a, b) => b.engagement - a.engagement);
         setPostsData(posts);
       } else {
         setPostsData([]);
@@ -218,6 +218,29 @@ function App() {
       setInsights(null)
     })
   }
+
+  const sortedPosts = [...postsData].sort((a, b) => {
+    if (a[sortConfig.key] < b[sortConfig.key]) {
+      return sortConfig.direction === 'asc' ? -1 : 1;
+    }
+    if (a[sortConfig.key] > b[sortConfig.key]) {
+      return sortConfig.direction === 'asc' ? 1 : -1;
+    }
+    return 0;
+  });
+
+  const requestSort = (key) => {
+    let direction = 'desc';
+    if (sortConfig.key === key && sortConfig.direction === 'desc') {
+      direction = 'asc';
+    }
+    setSortConfig({ key, direction });
+  };
+  
+  const getSortIcon = (key) => {
+    if (sortConfig.key !== key) return ' ↕';
+    return sortConfig.direction === 'asc' ? ' ↑' : ' ↓';
+  };
 
   return (
     <div className="card">
@@ -371,40 +394,39 @@ function App() {
               {postsData.length > 0 && (
                 <div className="posts-section">
                   <h2>Recent Posts Performance</h2>
-                  <div className="posts-grid">
-                    {postsData.map((post, index) => (
-                      <div key={post.id} className={`post-card ${index === 0 ? 'top-post' : ''}`}>
-                        {index === 0 && <div className="top-badge">🌟 Top Performer</div>}
-                        {post.image && (
-                          <div className="post-image">
-                            <img src={post.image} alt="Post" />
-                          </div>
-                        )}
-                        <div className="post-content">
-                          <span className="post-date">{post.date}</span>
-                          <p>{post.message.length > 100 ? post.message.substring(0, 100) + '...' : post.message}</p>
-                          <a href={post.url} target="_blank" rel="noopener noreferrer" className="post-link">View on Facebook</a>
-                        </div>
-                        <div className="post-metrics">
-                          <div className="metric">
-                            <span className="metric-label">Reach</span>
-                            <span className="metric-value">{post.reach.toLocaleString()}</span>
-                          </div>
-                          <div className="metric">
-                            <span className="metric-label">Engagements</span>
-                            <span className="metric-value">{post.engagement.toLocaleString()}</span>
-                          </div>
-                          <div className="metric">
-                            <span className="metric-label">Likes</span>
-                            <span className="metric-value">{post.likes.toLocaleString()}</span>
-                          </div>
-                          <div className="metric">
-                            <span className="metric-label">Comments</span>
-                            <span className="metric-value">{post.comments.toLocaleString()}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="table-container">
+                    <table className="sortable-table">
+                      <thead>
+                        <tr>
+                          <th onClick={() => requestSort('rawDate')} className="sortable-header">Date{getSortIcon('rawDate')}</th>
+                          <th>Post</th>
+                          <th onClick={() => requestSort('reach')} className="sortable-header">Reach{getSortIcon('reach')}</th>
+                          <th onClick={() => requestSort('engagement')} className="sortable-header">Engagements{getSortIcon('engagement')}</th>
+                          <th onClick={() => requestSort('likes')} className="sortable-header">Likes{getSortIcon('likes')}</th>
+                          <th onClick={() => requestSort('comments')} className="sortable-header">Comments{getSortIcon('comments')}</th>
+                          <th onClick={() => requestSort('shares')} className="sortable-header">Shares{getSortIcon('shares')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sortedPosts.map((post) => (
+                          <tr key={post.id}>
+                            <td className="date-cell">{post.date}</td>
+                            <td className="post-cell">
+                              {post.image && <img src={post.image} alt="Post thumbnail" className="post-thumbnail" />}
+                              <div className="post-message">
+                                <p>{post.message.length > 80 ? post.message.substring(0, 80) + '...' : post.message}</p>
+                                <a href={post.url} target="_blank" rel="noopener noreferrer" className="post-link">View Post</a>
+                              </div>
+                            </td>
+                            <td className="metric-cell">{post.reach.toLocaleString()}</td>
+                            <td className="metric-cell">{post.engagement.toLocaleString()}</td>
+                            <td className="metric-cell">{post.likes.toLocaleString()}</td>
+                            <td className="metric-cell">{post.comments.toLocaleString()}</td>
+                            <td className="metric-cell">{post.shares.toLocaleString()}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               )}
