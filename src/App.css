@@ -255,6 +255,37 @@ input[type="date"]:focus {
   color: #fff;
 }
 
+.multi-values {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.multi-values > div {
+  font-size: 0.95rem;
+}
+
+.page-selectors {
+  background: #1e293b;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.checkbox-label {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s;
+}
+
+.checkbox-label:hover {
+  color: var(--fb-blue);
+}
+
 /* Charts */
 .charts-container {
   display: flex;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { LineChart, Line, PieChart, Pie, BarChart, Bar, CartesianGrid, Tooltip, XAxis, YAxis, ResponsiveContainer, Cell, Legend } from 'recharts'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
@@ -16,6 +16,8 @@ function App() {
   const [countryData, setCountryData] = useState([])
   const [loading, setLoading] = useState(false)
   const [sortConfig, setSortConfig] = useState({ key: 'rawDate', direction: 'desc' })
+
+  const [selectedPageIds, setSelectedPageIds] = useState([])
 
   const [since, setSince] = useState(() => {
     const d = new Date()
@@ -72,145 +74,153 @@ function App() {
       if (response && response.data) {
         setPages(response.data)
         if (response.data.length > 0) {
-          setSelectedPageId(response.data[0].id)
+          setSelectedPageIds([response.data[0].id])
         }
       }
     })
   }
 
-  const fetchPageInsights = () => {
-    if (!selectedPageId) return
+  const fetchPageInsights = async () => {
+    if (selectedPageIds.length === 0) return
     setLoading(true)
 
-    const selectedPage = pages.find(p => p.id === selectedPageId)
-    const pageAccessToken = selectedPage?.access_token
+    let aggregatedInsights = {}
+    let aggregatedDailyDataMap = {}
+    let aggregatedPosts = []
+    let aggregatedReactionDataMap = {}
+    let aggregatedAgeGenderDataMap = {}
+    let aggregatedCountryDataMap = {}
 
-    if (!pageAccessToken) {
-      alert("Could not find page access token.")
-      setLoading(false)
-      return
+    try {
+      for (const pageId of selectedPageIds) {
+        const selectedPage = pages.find(p => p.id === pageId)
+        const pageAccessToken = selectedPage?.access_token
+        const pageName = selectedPage?.name || pageId
+
+        if (!pageAccessToken) continue;
+
+        const metrics = [
+          'page_post_engagements',
+          'page_impressions',
+          'page_actions_post_reactions_total'
+        ].join(',')
+
+        const url = `/${pageId}/insights?metric=${metrics}&since=${since}&until=${until}&period=total_over_range&access_token=${pageAccessToken}`
+        const dailyUrl = `/${pageId}/insights?metric=${metrics}&since=${since}&until=${until}&period=day&access_token=${pageAccessToken}`
+        const postsUrl = `/${pageId}/posts?fields=id,message,created_time,full_picture,permalink_url,shares,comments.summary(total_count),likes.summary(total_count),insights.metric(post_impressions_unique,post_engaged_users)&since=${since}&until=${until}&access_token=${pageAccessToken}`
+        const demoUrl = `/${pageId}/insights?metric=page_fans_gender_age,page_fans_country&access_token=${pageAccessToken}`
+        const fansUrl = `/${pageId}?fields=fan_count&access_token=${pageAccessToken}`
+
+        const [insightsRes, fansRes, dailyRes, postsRes, demoRes] = await Promise.all([
+          new Promise(resolve => window.FB.api(url, resolve)),
+          new Promise(resolve => window.FB.api(fansUrl, resolve)),
+          new Promise(resolve => window.FB.api(dailyUrl, resolve)),
+          new Promise(resolve => window.FB.api(postsUrl, resolve)),
+          new Promise(resolve => window.FB.api(demoUrl, resolve))
+        ]);
+
+        if (!aggregatedInsights['page_fans']) aggregatedInsights['page_fans'] = [];
+        aggregatedInsights['page_fans'].push({ name: pageName, value: fansRes.fan_count || 0 });
+
+        if (insightsRes && insightsRes.data) {
+          insightsRes.data.forEach(item => {
+            if (!aggregatedInsights[item.name]) aggregatedInsights[item.name] = [];
+            
+            if (item.name === 'page_actions_post_reactions_total') {
+              const reactions = item.values[0]?.value || {}
+              const totalReactions = typeof reactions === 'object'
+                ? Object.values(reactions).reduce((a, b) => a + b, 0)
+                : reactions
+              aggregatedInsights[item.name].push({ name: pageName, value: totalReactions });
+              
+              if (typeof reactions === 'object') {
+                Object.keys(reactions).forEach(key => {
+                  const rName = key.charAt(0).toUpperCase() + key.slice(1);
+                  if (!aggregatedReactionDataMap[rName]) aggregatedReactionDataMap[rName] = { name: rName };
+                  aggregatedReactionDataMap[rName][pageName] = reactions[key];
+                });
+              }
+            } else {
+              aggregatedInsights[item.name].push({ name: pageName, value: item.values[0]?.value || 0 });
+            }
+          })
+        }
+
+        if (dailyRes && dailyRes.data) {
+          const engagements = dailyRes.data.find(d => d.name === 'page_post_engagements')?.values || []
+          const impressions = dailyRes.data.find(d => d.name === 'page_impressions')?.values || []
+          
+          engagements.forEach((eng, index) => {
+            const dateStr = new Date(eng.end_time).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+            if (!aggregatedDailyDataMap[dateStr]) aggregatedDailyDataMap[dateStr] = { date: dateStr };
+            aggregatedDailyDataMap[dateStr][`engagements_${pageName}`] = eng.value || 0;
+            aggregatedDailyDataMap[dateStr][`impressions_${pageName}`] = impressions[index]?.value || 0;
+          });
+        }
+
+        if (postsRes && postsRes.data) {
+          const pagePosts = postsRes.data.map(post => {
+            const insightsArr = post.insights?.data || [];
+            const reach = insightsArr.find(i => i.name === 'post_impressions_unique')?.values[0]?.value || 0;
+            const engagement = insightsArr.find(i => i.name === 'post_engaged_users')?.values[0]?.value || 0;
+            return {
+              id: post.id,
+              pageName: pageName,
+              message: post.message || '',
+              date: new Date(post.created_time).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }),
+              rawDate: new Date(post.created_time).getTime(),
+              image: post.full_picture || null,
+              url: post.permalink_url,
+              likes: post.likes?.summary?.total_count || 0,
+              comments: post.comments?.summary?.total_count || 0,
+              shares: post.shares?.count || 0,
+              reach,
+              engagement
+            }
+          });
+          aggregatedPosts.push(...pagePosts);
+        }
+
+        if (demoRes && demoRes.data) {
+          const genderAgeRaw = demoRes.data.find(d => d.name === 'page_fans_gender_age')?.values[0]?.value || {};
+          const countryRaw = demoRes.data.find(d => d.name === 'page_fans_country')?.values[0]?.value || {};
+
+          const ageGroups = ['13-17', '18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
+          ageGroups.forEach(age => {
+            if (!aggregatedAgeGenderDataMap[age]) aggregatedAgeGenderDataMap[age] = { age };
+            aggregatedAgeGenderDataMap[age][`female_${pageName}`] = genderAgeRaw[`F.${age}`] || 0;
+            aggregatedAgeGenderDataMap[age][`male_${pageName}`] = genderAgeRaw[`M.${age}`] || 0;
+          });
+
+          Object.keys(countryRaw).forEach(key => {
+            if (!aggregatedCountryDataMap[key]) aggregatedCountryDataMap[key] = { name: key };
+            aggregatedCountryDataMap[key][pageName] = countryRaw[key];
+          });
+        }
+      }
+
+      setInsights(aggregatedInsights);
+      setDailyData(Object.values(aggregatedDailyDataMap));
+      setReactionData(Object.values(aggregatedReactionDataMap));
+      setPostsData(aggregatedPosts);
+      
+      const ageGenderArr = Object.values(aggregatedAgeGenderDataMap).filter(d => Object.keys(d).some(k => k !== 'age' && d[k] > 0));
+      setAgeGenderData(ageGenderArr);
+      
+      const countryArr = Object.values(aggregatedCountryDataMap).map(c => {
+        let total = 0;
+        Object.keys(c).forEach(k => { if (k !== 'name') total += c[k]; });
+        return { ...c, total };
+      });
+      countryArr.sort((a, b) => b.total - a.total);
+      setCountryData(countryArr.slice(0, 6));
+
+    } catch (e) {
+      console.error(e);
+      alert('Failed to fetch insights');
     }
 
-    // Phase 3 Metrics: Total Followers, Engagement, Impressions, Reactions
-    // Note: page_fans (Total Followers) is a lifetime metric. 
-    // The others support period=total_over_range for specified date filtering.
-    const metrics = [
-      'page_post_engagements',
-      'page_impressions',
-      'page_actions_post_reactions_total'
-    ].join(',')
-
-    const url = `/${selectedPageId}/insights?metric=${metrics}&since=${since}&until=${until}&period=total_over_range&access_token=${pageAccessToken}`
-    const dailyUrl = `/${selectedPageId}/insights?metric=${metrics}&since=${since}&until=${until}&period=day&access_token=${pageAccessToken}`
-    const postsUrl = `/${selectedPageId}/posts?fields=id,message,created_time,full_picture,permalink_url,shares,comments.summary(total_count),likes.summary(total_count),insights.metric(post_impressions_unique,post_engaged_users)&since=${since}&until=${until}&access_token=${pageAccessToken}`
-    const demoUrl = `/${selectedPageId}/insights?metric=page_fans_gender_age,page_fans_country&access_token=${pageAccessToken}`
-
-    // Fetch Lifetime Fans (Followers) separately as it doesn't support total_over_range
-    const fansUrl = `/${selectedPageId}?fields=fan_count&access_token=${pageAccessToken}`
-
-    Promise.all([
-      new Promise(resolve => window.FB.api(url, resolve)),
-      new Promise(resolve => window.FB.api(fansUrl, resolve)),
-      new Promise(resolve => window.FB.api(dailyUrl, resolve)),
-      new Promise(resolve => window.FB.api(postsUrl, resolve)),
-      new Promise(resolve => window.FB.api(demoUrl, resolve))
-    ]).then(([insightsResponse, fansResponse, dailyResponse, postsResponse, demoResponse]) => {
-      setLoading(false)
-
-      if (insightsResponse && insightsResponse.data) {
-        const result = {
-          page_fans: fansResponse.fan_count || 0
-        }
-        let reactions = {}
-        insightsResponse.data.forEach(item => {
-          if (item.name === 'page_actions_post_reactions_total') {
-            reactions = item.values[0]?.value || {}
-            const totalReactions = typeof reactions === 'object'
-              ? Object.values(reactions).reduce((a, b) => a + b, 0)
-              : reactions
-            result[item.name] = totalReactions
-          } else {
-            result[item.name] = item.values[0]?.value || 0
-          }
-        })
-        setInsights(result)
-
-        // Process reaction data for pie chart
-        if (typeof reactions === 'object') {
-          const rData = Object.keys(reactions).map(key => ({
-            name: key.charAt(0).toUpperCase() + key.slice(1),
-            value: reactions[key]
-          })).filter(r => r.value > 0)
-          setReactionData(rData)
-        }
-      } else {
-        console.error('Insights Error:', insightsResponse)
-        alert('Failed to fetch insights. Check console for details.')
-      }
-
-      // Process daily data for line chart
-      if (dailyResponse && dailyResponse.data) {
-        const engagements = dailyResponse.data.find(d => d.name === 'page_post_engagements')?.values || []
-        const impressions = dailyResponse.data.find(d => d.name === 'page_impressions')?.values || []
-
-        const chartData = engagements.map((eng, index) => {
-          return {
-            date: new Date(eng.end_time).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
-            engagements: eng.value || 0,
-            impressions: impressions[index]?.value || 0
-          }
-        })
-        setDailyData(chartData)
-      }
-
-      // Process post-level data
-      if (postsResponse && postsResponse.data) {
-        let posts = postsResponse.data.map(post => {
-          const insightsArr = post.insights?.data || [];
-          const reach = insightsArr.find(i => i.name === 'post_impressions_unique')?.values[0]?.value || 0;
-          const engagement = insightsArr.find(i => i.name === 'post_engaged_users')?.values[0]?.value || 0;
-          return {
-            id: post.id,
-            message: post.message || '',
-            date: new Date(post.created_time).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }),
-            rawDate: new Date(post.created_time).getTime(),
-            image: post.full_picture || null,
-            url: post.permalink_url,
-            likes: post.likes?.summary?.total_count || 0,
-            comments: post.comments?.summary?.total_count || 0,
-            shares: post.shares?.count || 0,
-            reach,
-            engagement
-          }
-        });
-
-        setPostsData(posts);
-      } else {
-        setPostsData([]);
-      }
-
-      // Process demographic data
-      if (demoResponse && demoResponse.data) {
-        const genderAgeRaw = demoResponse.data.find(d => d.name === 'page_fans_gender_age')?.values[0]?.value || {};
-        const countryRaw = demoResponse.data.find(d => d.name === 'page_fans_country')?.values[0]?.value || {};
-
-        const ageGroups = ['13-17', '18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
-        const formattedAgeData = ageGroups.map(age => ({
-          age,
-          female: genderAgeRaw[`F.${age}`] || 0,
-          male: genderAgeRaw[`M.${age}`] || 0
-        })).filter(d => d.female > 0 || d.male > 0);
-
-        setAgeGenderData(formattedAgeData);
-
-        const countryArr = Object.keys(countryRaw).map(key => ({
-          name: key,
-          value: countryRaw[key]
-        }));
-        countryArr.sort((a, b) => b.value - a.value);
-        setCountryData(countryArr.slice(0, 6)); // Top 6 countries
-      }
-    })
+    setLoading(false)
   }
 
   const handleLogout = () => {
@@ -249,12 +259,13 @@ function App() {
       alert("No data to export");
       return;
     }
-    const headers = ["Date", "Post Message", "Reach", "Engagements", "Likes", "Comments", "Shares", "Post URL"];
+    const headers = ["Page", "Date", "Post Message", "Reach", "Engagements", "Likes", "Comments", "Shares", "Post URL"];
     const csvRows = [headers.join(",")];
     
     postsData.forEach(post => {
       const safeMessage = `"${post.message.replace(/"/g, '""')}"`;
       const row = [
+        `"${post.pageName}"`,
         post.date,
         safeMessage,
         post.reach,
@@ -271,7 +282,7 @@ function App() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `facebook_insights_${since}_to_${until}.csv`);
+    link.setAttribute("download", `facebook_insights_multi_${since}_to_${until}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -286,7 +297,6 @@ function App() {
     
     setLoading(true);
     try {
-      // Temporarily hide export buttons to avoid them being in the PDF
       const actionArea = document.querySelector('.export-actions');
       if (actionArea) actionArea.style.display = 'none';
 
@@ -304,7 +314,7 @@ function App() {
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
       
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`facebook_insights_${since}_to_${until}.pdf`);
+      pdf.save(`facebook_insights_multi_${since}_to_${until}.pdf`);
     } catch (error) {
       console.error("PDF Export failed", error);
       alert("Failed to export PDF.");
@@ -312,6 +322,8 @@ function App() {
       setLoading(false);
     }
   };
+
+  const pageColors = ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4'];
 
   return (
     <div className="card">
@@ -358,19 +370,31 @@ function App() {
 
           <section className="controls">
             <div className="control-group">
-              <label>Select Page</label>
-              <select
-                value={selectedPageId}
-                onChange={(e) => setSelectedPageId(e.target.value)}
-              >
+              <label>Select Pages</label>
+              <div className="page-selectors">
                 {pages.length === 0 ? (
-                  <option value="">No pages found</option>
+                  <span>No pages found</span>
                 ) : (
                   pages.map(page => (
-                    <option key={page.id} value={page.id}>{page.name}</option>
+                    <label key={page.id} className="checkbox-label" style={{ display: 'block', marginBottom: '4px', fontSize: '0.9rem', color: '#f8fafc' }}>
+                      <input 
+                        type="checkbox" 
+                        style={{ marginRight: '8px' }}
+                        value={page.id}
+                        checked={selectedPageIds.includes(page.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedPageIds([...selectedPageIds, page.id])
+                          } else {
+                            setSelectedPageIds(selectedPageIds.filter(id => id !== page.id))
+                          }
+                        }}
+                      />
+                      {page.name}
+                    </label>
                   ))
                 )}
-              </select>
+              </div>
             </div>
 
             <div className="date-controls">
@@ -387,7 +411,7 @@ function App() {
             <button
               onClick={fetchPageInsights}
               className="btn-primary"
-              disabled={loading || !selectedPageId}
+              disabled={loading || selectedPageIds.length === 0}
             >
               {loading ? 'Fetching...' : 'Get Insights'}
             </button>
@@ -409,25 +433,49 @@ function App() {
               <div className="insights-grid">
                 <div className="insight-card">
                   <span className="label">Total Followers</span>
-                  <span className="value">{insights.page_fans?.toLocaleString() || 0}</span>
+                  <div className="multi-values">
+                    {insights.page_fans?.map((p, i) => (
+                      <div key={p.name} style={{ display: 'flex', justifyContent: 'space-between', color: pageColors[i % pageColors.length] }}>
+                        <span>{p.name}:</span> <strong>{p.value.toLocaleString()}</strong>
+                      </div>
+                    ))}
+                  </div>
                 </div>
                 <div className="insight-card">
                   <span className="label">Total Engagement</span>
-                  <span className="value">{insights.page_post_engagements?.toLocaleString() || 0}</span>
+                  <div className="multi-values">
+                    {insights.page_post_engagements?.map((p, i) => (
+                      <div key={p.name} style={{ display: 'flex', justifyContent: 'space-between', color: pageColors[i % pageColors.length] }}>
+                        <span>{p.name}:</span> <strong>{p.value.toLocaleString()}</strong>
+                      </div>
+                    ))}
+                  </div>
                 </div>
                 <div className="insight-card">
                   <span className="label">Total Impressions</span>
-                  <span className="value">{insights.page_impressions?.toLocaleString() || 0}</span>
+                  <div className="multi-values">
+                    {insights.page_impressions?.map((p, i) => (
+                      <div key={p.name} style={{ display: 'flex', justifyContent: 'space-between', color: pageColors[i % pageColors.length] }}>
+                        <span>{p.name}:</span> <strong>{p.value.toLocaleString()}</strong>
+                      </div>
+                    ))}
+                  </div>
                 </div>
                 <div className="insight-card">
                   <span className="label">Total Reactions</span>
-                  <span className="value">{insights.page_actions_post_reactions_total?.toLocaleString() || 0}</span>
+                  <div className="multi-values">
+                    {insights.page_actions_post_reactions_total?.map((p, i) => (
+                      <div key={p.name} style={{ display: 'flex', justifyContent: 'space-between', color: pageColors[i % pageColors.length] }}>
+                        <span>{p.name}:</span> <strong>{p.value.toLocaleString()}</strong>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
               <div className="charts-container">
                 <div className="chart-card">
-                  <h3>Engagement & Impressions Trend</h3>
+                  <h3>Engagement Trend</h3>
                   <div className="chart-wrapper">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={dailyData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
@@ -435,40 +483,30 @@ function App() {
                         <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => val >= 1000 ? `${(val / 1000).toFixed(1)}k` : val} />
                         <Tooltip contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }} />
                         <Legend wrapperStyle={{ paddingTop: '10px' }} />
-                        <Line type="monotone" dataKey="impressions" stroke="#3b82f6" strokeWidth={3} dot={false} activeDot={{ r: 6 }} name="Impressions" />
-                        <Line type="monotone" dataKey="engagements" stroke="#10b981" strokeWidth={3} dot={false} activeDot={{ r: 6 }} name="Engagements" />
+                        {selectedPageIds.map((id, index) => {
+                           const pageName = pages.find(p => p.id === id)?.name || id;
+                           return <Line key={id} type="monotone" dataKey={`engagements_${pageName}`} stroke={pageColors[index % pageColors.length]} strokeWidth={3} dot={false} activeDot={{ r: 6 }} name={pageName} />
+                        })}
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
                 </div>
 
                 <div className="chart-card">
-                  <h3>Reactions Breakdown</h3>
+                  <h3>Impressions Trend</h3>
                   <div className="chart-wrapper">
-                    {reactionData.length > 0 ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={reactionData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={60}
-                            outerRadius={80}
-                            paddingAngle={5}
-                            dataKey="value"
-                          >
-                            {reactionData.map((entry, index) => {
-                              const colors = ['#3b82f6', '#f43f5e', '#eab308', '#10b981', '#8b5cf6', '#f97316'];
-                              return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />;
-                            })}
-                          </Pie>
-                          <Tooltip contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }} />
-                          <Legend />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div className="no-data">No reaction data available for this period.</div>
-                    )}
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={dailyData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                        <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                        <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => val >= 1000 ? `${(val / 1000).toFixed(1)}k` : val} />
+                        <Tooltip contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }} />
+                        <Legend wrapperStyle={{ paddingTop: '10px' }} />
+                        {selectedPageIds.map((id, index) => {
+                           const pageName = pages.find(p => p.id === id)?.name || id;
+                           return <Line key={id} type="monotone" dataKey={`impressions_${pageName}`} stroke={pageColors[index % pageColors.length]} strokeWidth={3} dot={false} activeDot={{ r: 6 }} name={pageName} />
+                        })}
+                      </LineChart>
+                    </ResponsiveContainer>
                   </div>
                 </div>
               </div>
@@ -480,6 +518,7 @@ function App() {
                     <table className="sortable-table">
                       <thead>
                         <tr>
+                          <th onClick={() => requestSort('pageName')} className="sortable-header">Page{getSortIcon('pageName')}</th>
                           <th onClick={() => requestSort('rawDate')} className="sortable-header">Date{getSortIcon('rawDate')}</th>
                           <th>Post</th>
                           <th onClick={() => requestSort('reach')} className="sortable-header">Reach{getSortIcon('reach')}</th>
@@ -492,6 +531,7 @@ function App() {
                       <tbody>
                         {sortedPosts.map((post) => (
                           <tr key={post.id}>
+                            <td className="date-cell" style={{ color: '#fff', fontWeight: 600 }}>{post.pageName}</td>
                             <td className="date-cell">{post.date}</td>
                             <td className="post-cell">
                               {post.image && <img src={post.image} alt="Post thumbnail" className="post-thumbnail" />}
@@ -518,22 +558,24 @@ function App() {
                   <h2>Audience Demographics</h2>
                   <div className="charts-container">
                     <div className="chart-card">
-                      <h3>Age & Gender Distribution</h3>
+                      <h3>Reactions Breakdown</h3>
                       <div className="chart-wrapper">
-                        {ageGenderData.length > 0 ? (
+                        {reactionData.length > 0 ? (
                           <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={ageGenderData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                            <BarChart data={reactionData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
                               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                              <XAxis dataKey="age" stroke="#94a3b8" tickLine={false} axisLine={false} />
+                              <XAxis dataKey="name" stroke="#94a3b8" tickLine={false} axisLine={false} />
                               <YAxis stroke="#94a3b8" tickLine={false} axisLine={false} />
                               <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }} />
                               <Legend wrapperStyle={{ paddingTop: '10px' }} />
-                              <Bar dataKey="female" name="Female" fill="#ec4899" radius={[4, 4, 0, 0]} />
-                              <Bar dataKey="male" name="Male" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                              {selectedPageIds.map((id, index) => {
+                                 const pageName = pages.find(p => p.id === id)?.name || id;
+                                 return <Bar key={id} dataKey={pageName} name={pageName} fill={pageColors[index % pageColors.length]} radius={[4, 4, 0, 0]} />
+                              })}
                             </BarChart>
                           </ResponsiveContainer>
                         ) : (
-                          <div className="no-data">Not enough age/gender data available.</div>
+                          <div className="no-data">No reaction data available.</div>
                         )}
                       </div>
                     </div>
@@ -543,23 +585,17 @@ function App() {
                       <div className="chart-wrapper">
                         {countryData.length > 0 ? (
                           <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                              <Pie
-                                data={countryData}
-                                cx="50%"
-                                cy="50%"
-                                outerRadius={80}
-                                dataKey="value"
-                                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                                labelLine={false}
-                              >
-                                {countryData.map((entry, index) => {
-                                  const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
-                                  return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />;
-                                })}
-                              </Pie>
-                              <Tooltip contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }} />
-                            </PieChart>
+                            <BarChart data={countryData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                              <XAxis dataKey="name" stroke="#94a3b8" tickLine={false} axisLine={false} />
+                              <YAxis stroke="#94a3b8" tickLine={false} axisLine={false} />
+                              <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }} />
+                              <Legend wrapperStyle={{ paddingTop: '10px' }} />
+                              {selectedPageIds.map((id, index) => {
+                                 const pageName = pages.find(p => p.id === id)?.name || id;
+                                 return <Bar key={id} dataKey={pageName} name={pageName} fill={pageColors[index % pageColors.length]} radius={[4, 4, 0, 0]} />
+                              })}
+                            </BarChart>
                           </ResponsiveContainer>
                         ) : (
                           <div className="no-data">Not enough country data available.</div>
