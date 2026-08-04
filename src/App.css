@@ -8,6 +8,10 @@
   --border: rgba(255, 255, 255, 0.1);
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 .card {
   background: var(--bg-card);
   backdrop-filter: blur(12px);
@@ -20,7 +24,6 @@
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
 
-/* Login View Styling */
 .login-view {
   text-align: center;
 }
@@ -196,6 +199,11 @@ input[type="date"]:focus {
   transform: translateY(-1px);
 }
 
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .btn-outline {
   background: transparent;
   border: 1px solid var(--border);
@@ -262,7 +270,7 @@ input[type="date"]:focus {
   margin-top: 0.5rem;
 }
 
-.multi-values > div {
+.multi-values>div {
   font-size: 0.95rem;
 }
 
@@ -284,6 +292,10 @@ input[type="date"]:focus {
 
 .checkbox-label:hover {
   color: var(--fb-blue);
+}
+
+input[type="checkbox"] {
+  accent-color: var(--fb-blue);
 }
 
 /* Charts */

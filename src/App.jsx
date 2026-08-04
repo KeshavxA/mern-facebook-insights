@@ -4,6 +4,10 @@ import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 import './App.css'
 
+const APP_ID = '2755559531509591';
+const pageColors = ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4'];
+const ageGroups = ['13-17', '18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
+
 function App() {
   const [user, setUser] = useState(null)
   const [sdkLoaded, setSdkLoaded] = useState(false)
@@ -25,8 +29,6 @@ function App() {
     return d.toISOString().split('T')[0]
   })
   const [until, setUntil] = useState(() => new Date().toISOString().split('T')[0])
-
-  const APP_ID = '2755559531509591'
 
   useEffect(() => {
     window.fbAsyncInit = function () {
@@ -185,7 +187,6 @@ function App() {
           const genderAgeRaw = demoRes.data.find(d => d.name === 'page_fans_gender_age')?.values[0]?.value || {};
           const countryRaw = demoRes.data.find(d => d.name === 'page_fans_country')?.values[0]?.value || {};
 
-          const ageGroups = ['13-17', '18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
           ageGroups.forEach(age => {
             if (!aggregatedAgeGenderDataMap[age]) aggregatedAgeGenderDataMap[age] = { age };
             aggregatedAgeGenderDataMap[age][`female_${pageName}`] = genderAgeRaw[`F.${age}`] || 0;
@@ -323,8 +324,6 @@ function App() {
     }
   };
 
-  const pageColors = ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4'];
-
   return (
     <div className="card">
       {!user ? (
@@ -332,6 +331,7 @@ function App() {
           <header>
             <div className="logo">
               <svg width="32" height="32" viewBox="0 0 24 24" fill="#1877F2">
+                <title>Facebook Logo</title>
                 <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
               </svg>
             </div>
@@ -359,7 +359,7 @@ function App() {
         <div className="dashboard">
           <header className="dashboard-header">
             <div className="user-info">
-              <img src={user.picture} alt={user.name} className="user-avatar" />
+              <img src={user.picture} alt={`${user.name}'s avatar`} className="user-avatar" />
               <div>
                 <h2>Hello, {user.name.split(' ')[0]}</h2>
                 <span className="user-email">{user.email}</span>
@@ -413,18 +413,18 @@ function App() {
               className="btn-primary"
               disabled={loading || selectedPageIds.length === 0}
             >
-              {loading ? 'Fetching...' : 'Get Insights'}
+              {loading ? 'Fetching Insights...' : 'Get Insights'}
             </button>
           </section>
 
           {insights && (
             <>
               <div className="export-actions" style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginBottom: '1.5rem' }}>
-                <button onClick={exportToCSV} className="btn-outline" disabled={loading}>
+                <button onClick={exportToCSV} className="btn-outline" disabled={loading} title="Export data to CSV">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle', position: 'relative', top: '-1px' }}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                   Export CSV
                 </button>
-                <button onClick={exportToPDF} className="btn-outline" disabled={loading}>
+                <button onClick={exportToPDF} className="btn-outline" disabled={loading} title="Export dashboard to PDF">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle', position: 'relative', top: '-1px' }}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><polyline points="9 15 12 18 15 15"></polyline></svg>
                   Export PDF
                 </button>
