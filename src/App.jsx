@@ -610,6 +610,7 @@ function App() {
           )}
         </div>
       )}
+      <footer className="app-footer">Powered by React & Recharts</footer>
     </main>
   )
 }
