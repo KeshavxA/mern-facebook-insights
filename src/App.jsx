@@ -398,7 +398,8 @@ function App() {
               </div>
             </div>
 
-            <div className="date-controls">
+            <fieldset className="date-fieldset"><legend>Date Range</legend>
+              <div className="date-controls">
               <div className="control-group">
                 <label>Since</label>
                 <input type="date" value={since} onChange={(e) => setSince(e.target.value)} />
@@ -408,6 +409,7 @@ function App() {
                 <input type="date" value={until} onChange={(e) => setUntil(e.target.value)} />
               </div>
             </div>
+            </fieldset>
 
             <button
               onClick={fetchPageInsights}
