@@ -325,7 +325,7 @@ function App() {
   };
 
   return (
-    <div className="card">
+    <main className="card">
       {!user ? (
         <div className="login-view">
           <header>
@@ -609,7 +609,7 @@ function App() {
           )}
         </div>
       )}
-    </div>
+    </main>
   )
 }
 
