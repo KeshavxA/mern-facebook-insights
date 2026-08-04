@@ -453,3 +453,5 @@ input[type="checkbox"] {
 ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
 ::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--fb-blue); }
+
+.app-footer { text-align: center; color: var(--text-muted); margin-top: 2.5rem; font-size: 0.85rem; border-top: 1px solid var(--border); padding-top: 1.5rem; }
