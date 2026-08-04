@@ -374,7 +374,7 @@ function App() {
               <label>Select Pages</label>
               <div className="page-selectors">
                 {pages.length === 0 ? (
-                  <span>No pages found</span>
+                  <div className="no-pages-alert" style={{color: "#f8fafc", padding: "10px", background: "rgba(255,255,255,0.05)", borderRadius: "8px", fontSize: "0.9rem"}}>No Facebook Pages connected to this account.</div>
                 ) : (
                   pages.map(page => (
                     <label key={page.id} className="checkbox-label" style={{ display: 'block', marginBottom: '4px', fontSize: '0.9rem', color: '#f8fafc' }}>
