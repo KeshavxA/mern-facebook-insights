@@ -449,3 +449,7 @@ input[type="checkbox"] {
   font-size: 1.05rem;
   color: #fff;
 }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--fb-blue); }
