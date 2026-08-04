@@ -6,6 +6,7 @@ import './App.css'
 
 const APP_ID = '2755559531509591';
 const pageColors = ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4'];
+const numberFormatter = new Intl.NumberFormat('en-US');
 const ageGroups = ['13-17', '18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
 
 function App() {
@@ -436,7 +437,7 @@ function App() {
                   <div className="multi-values">
                     {insights.page_fans?.map((p, i) => (
                       <div key={p.name} style={{ display: 'flex', justifyContent: 'space-between', color: pageColors[i % pageColors.length] }}>
-                        <span>{p.name}:</span> <strong>{p.value.toLocaleString()}</strong>
+                        <span>{p.name}:</span> <strong>{numberFormatter.format(p.value)}</strong>
                       </div>
                     ))}
                   </div>
@@ -446,7 +447,7 @@ function App() {
                   <div className="multi-values">
                     {insights.page_post_engagements?.map((p, i) => (
                       <div key={p.name} style={{ display: 'flex', justifyContent: 'space-between', color: pageColors[i % pageColors.length] }}>
-                        <span>{p.name}:</span> <strong>{p.value.toLocaleString()}</strong>
+                        <span>{p.name}:</span> <strong>{numberFormatter.format(p.value)}</strong>
                       </div>
                     ))}
                   </div>
@@ -456,7 +457,7 @@ function App() {
                   <div className="multi-values">
                     {insights.page_impressions?.map((p, i) => (
                       <div key={p.name} style={{ display: 'flex', justifyContent: 'space-between', color: pageColors[i % pageColors.length] }}>
-                        <span>{p.name}:</span> <strong>{p.value.toLocaleString()}</strong>
+                        <span>{p.name}:</span> <strong>{numberFormatter.format(p.value)}</strong>
                       </div>
                     ))}
                   </div>
@@ -466,7 +467,7 @@ function App() {
                   <div className="multi-values">
                     {insights.page_actions_post_reactions_total?.map((p, i) => (
                       <div key={p.name} style={{ display: 'flex', justifyContent: 'space-between', color: pageColors[i % pageColors.length] }}>
-                        <span>{p.name}:</span> <strong>{p.value.toLocaleString()}</strong>
+                        <span>{p.name}:</span> <strong>{numberFormatter.format(p.value)}</strong>
                       </div>
                     ))}
                   </div>
@@ -540,11 +541,11 @@ function App() {
                                 <a href={post.url} target="_blank" rel="noopener noreferrer" className="post-link">View Post</a>
                               </div>
                             </td>
-                            <td className="metric-cell">{post.reach.toLocaleString()}</td>
-                            <td className="metric-cell">{post.engagement.toLocaleString()}</td>
-                            <td className="metric-cell">{post.likes.toLocaleString()}</td>
-                            <td className="metric-cell">{post.comments.toLocaleString()}</td>
-                            <td className="metric-cell">{post.shares.toLocaleString()}</td>
+                            <td className="metric-cell">{numberFormatter.format(post.reach)}</td>
+                            <td className="metric-cell">{numberFormatter.format(post.engagement)}</td>
+                            <td className="metric-cell">{numberFormatter.format(post.likes)}</td>
+                            <td className="metric-cell">{numberFormatter.format(post.comments)}</td>
+                            <td className="metric-cell">{numberFormatter.format(post.shares)}</td>
                           </tr>
                         ))}
                       </tbody>
