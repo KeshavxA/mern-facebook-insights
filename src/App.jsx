@@ -151,7 +151,7 @@ function App() {
           })
         }
 
-        if (dailyRes && dailyRes.data) {
+        if (dailyRes?.data) {
           const engagements = dailyRes.data.find(d => d.name === 'page_post_engagements')?.values || []
           const impressions = dailyRes.data.find(d => d.name === 'page_impressions')?.values || []
           
