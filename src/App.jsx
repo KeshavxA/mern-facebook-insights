@@ -523,14 +523,14 @@ function App() {
                     <table className="sortable-table">
                       <thead>
                         <tr>
-                          <th onClick={() => requestSort('pageName')} className="sortable-header">Page{getSortIcon('pageName')}</th>
-                          <th onClick={() => requestSort('rawDate')} className="sortable-header">Date{getSortIcon('rawDate')}</th>
+                          <th onClick={() => requestSort('pageName')} className="sortable-header" title="Click to sort">Page{getSortIcon('pageName')}</th>
+                          <th onClick={() => requestSort('rawDate')} className="sortable-header" title="Click to sort">Date{getSortIcon('rawDate')}</th>
                           <th>Post</th>
-                          <th onClick={() => requestSort('reach')} className="sortable-header">Reach{getSortIcon('reach')}</th>
-                          <th onClick={() => requestSort('engagement')} className="sortable-header">Engagements{getSortIcon('engagement')}</th>
-                          <th onClick={() => requestSort('likes')} className="sortable-header">Likes{getSortIcon('likes')}</th>
-                          <th onClick={() => requestSort('comments')} className="sortable-header">Comments{getSortIcon('comments')}</th>
-                          <th onClick={() => requestSort('shares')} className="sortable-header">Shares{getSortIcon('shares')}</th>
+                          <th onClick={() => requestSort('reach')} className="sortable-header" title="Click to sort">Reach{getSortIcon('reach')}</th>
+                          <th onClick={() => requestSort('engagement')} className="sortable-header" title="Click to sort">Engagements{getSortIcon('engagement')}</th>
+                          <th onClick={() => requestSort('likes')} className="sortable-header" title="Click to sort">Likes{getSortIcon('likes')}</th>
+                          <th onClick={() => requestSort('comments')} className="sortable-header" title="Click to sort">Comments{getSortIcon('comments')}</th>
+                          <th onClick={() => requestSort('shares')} className="sortable-header" title="Click to sort">Shares{getSortIcon('shares')}</th>
                         </tr>
                       </thead>
                       <tbody>
