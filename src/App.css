@@ -218,6 +218,7 @@ input[type="date"]:focus {
 .btn-outline:hover {
   background: rgba(255, 255, 255, 0.05);
   color: white;
+  transform: translateY(-1px);
 }
 
 /* Insights Grid */
