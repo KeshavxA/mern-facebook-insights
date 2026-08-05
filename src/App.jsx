@@ -127,7 +127,7 @@ function App() {
         if (!aggregatedInsights['page_fans']) aggregatedInsights['page_fans'] = [];
         aggregatedInsights['page_fans'].push({ name: pageName, value: fansRes.fan_count || 0 });
 
-        if (insightsRes && insightsRes.data) {
+        if (insightsRes?.data) {
           insightsRes.data.forEach(item => {
             if (!aggregatedInsights[item.name]) aggregatedInsights[item.name] = [];
             
