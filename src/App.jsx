@@ -186,7 +186,7 @@ function App() {
           aggregatedPosts.push(...pagePosts);
         }
 
-        if (demoRes && demoRes.data) {
+        if (demoRes?.data) {
           const genderAgeRaw = demoRes.data.find(d => d.name === 'page_fans_gender_age')?.values[0]?.value || {};
           const countryRaw = demoRes.data.find(d => d.name === 'page_fans_country')?.values[0]?.value || {};
 
