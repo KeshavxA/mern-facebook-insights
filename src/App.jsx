@@ -163,7 +163,7 @@ function App() {
           });
         }
 
-        if (postsRes && postsRes.data) {
+        if (postsRes?.data) {
           const pagePosts = postsRes.data.map(post => {
             const insightsArr = post.insights?.data || [];
             const reach = insightsArr.find(i => i.name === 'post_impressions_unique')?.values[0]?.value || 0;
