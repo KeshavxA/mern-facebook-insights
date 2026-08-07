@@ -359,7 +359,7 @@ function App() {
           </div>
         </section>
       ) : (
-        <div className="dashboard">
+        <section className="dashboard">
           <header className="dashboard-header">
             <div className="user-info">
               <img src={user.picture} alt={`${user.name}'s avatar`} className="user-avatar" />
@@ -612,7 +612,7 @@ function App() {
               )}
             </>
           )}
-        </div>
+        </section>
       )}
       <footer className="app-footer">Powered by React & Recharts</footer>
     </main>
