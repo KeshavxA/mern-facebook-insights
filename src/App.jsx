@@ -418,7 +418,7 @@ function App() {
               className="btn-primary"
               disabled={loading || selectedPageIds.length === 0}
             >
-              {loading ? <><span className=\"spinner\"></span>Fetching Insights...</> : 'Get Insights'}
+              {loading ? <><span className="spinner"></span>Fetching Insights...</> : 'Get Insights'}
             </button>
           </section>
 
