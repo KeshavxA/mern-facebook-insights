@@ -318,7 +318,7 @@ function App() {
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
       
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`facebook_insights_multi_${since}_to_${until}.pdf`);
+      pdf.save(`fb_insights_${since}_to_${until}.pdf`);
     } catch (error) {
       console.error("PDF Export failed", error);
       alert("Failed to export PDF.");
