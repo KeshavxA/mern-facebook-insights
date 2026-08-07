@@ -286,7 +286,7 @@ function App() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `facebook_insights_multi_${since}_to_${until}.csv`);
+    link.setAttribute("download", `fb_insights_${since}_to_${until}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
