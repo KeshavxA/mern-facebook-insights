@@ -1,5 +1,7 @@
 # Facebook Page Insights Dashboard
 
+![Status](https://img.shields.io/badge/status-active-success.svg)
+
 A professional MERN-stack application that integrates with the Facebook Graph API to provide real-time analytics for managed Facebook Pages. This project was built as part of a Full Stack Developer assessment.
 
 ![Dashboard Preview](https://raw.githubusercontent.com/meta-api-expert/mern-test/main/preview.png)
