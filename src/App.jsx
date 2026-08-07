@@ -330,7 +330,7 @@ function App() {
   return (
     <main className="card">
       {!user ? (
-        <div className="login-view">
+        <section className="login-view">
           <header>
             <div className="logo">
               <svg width="32" height="32" viewBox="0 0 24 24" fill="#1877F2">
@@ -357,7 +357,7 @@ function App() {
               {sdkLoaded ? 'Sign in with Facebook' : 'Initialising...'}
             </button>
           </div>
-        </div>
+        </section>
       ) : (
         <div className="dashboard">
           <header className="dashboard-header">
