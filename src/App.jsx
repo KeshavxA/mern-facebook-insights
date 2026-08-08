@@ -405,6 +405,9 @@ function App() {
             </div>
 
             <fieldset className="date-fieldset"><legend>Date Range</legend>
+              <div style={{ marginBottom: '8px' }}>
+                <button onClick={() => { const d = new Date(); d.setDate(d.getDate() - 7); setSince(d.toISOString().split('T')[0]); setUntil(new Date().toISOString().split('T')[0]); }} className="btn-outline" style={{ padding: '2px 8px', fontSize: '0.8rem', marginRight: '8px' }}>Last 7 Days</button>
+              </div>
               <div className="date-controls">
               <div className="control-group">
                 <label>Since</label>
