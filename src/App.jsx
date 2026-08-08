@@ -374,6 +374,9 @@ function App() {
           <section className="controls">
             <div className="control-group">
               <label>Select Pages ({selectedPageIds.length} selected)</label>
+              <div className="page-actions" style={{ marginBottom: '8px' }}>
+                <button onClick={() => setSelectedPageIds(pages.map(p => p.id))} className="btn-outline" style={{ padding: '2px 8px', fontSize: '0.8rem', marginRight: '8px' }}>Select All</button>
+              </div>
               <div className="page-selectors" aria-label="Page Selection List" role="group">
                 {pages.length === 0 ? (
                   <div className="no-pages-alert" style={{color: "#f8fafc", padding: "10px", background: "rgba(255,255,255,0.05)", borderRadius: "8px", fontSize: "0.9rem"}}>No Facebook Pages connected to this account.</div>
