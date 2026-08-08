@@ -376,6 +376,7 @@ function App() {
               <label>Select Pages ({selectedPageIds.length} selected)</label>
               <div className="page-actions" style={{ marginBottom: '8px' }}>
                 <button onClick={() => setSelectedPageIds(pages.map(p => p.id))} className="btn-outline" style={{ padding: '2px 8px', fontSize: '0.8rem', marginRight: '8px' }}>Select All</button>
+                <button onClick={() => setSelectedPageIds([])} className="btn-outline" style={{ padding: '2px 8px', fontSize: '0.8rem' }}>Clear All</button>
               </div>
               <div className="page-selectors" aria-label="Page Selection List" role="group">
                 {pages.length === 0 ? (
