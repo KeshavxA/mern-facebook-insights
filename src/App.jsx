@@ -412,7 +412,7 @@ function App() {
               </div>
               <div className="control-group">
                 <label>Until</label>
-                <input type="date" value={until} onChange={(e) => setUntil(e.target.value)} />
+                <input type="date" value={until} min={since} onChange={(e) => setUntil(e.target.value)} />
               </div>
             </div>
             </fieldset>
