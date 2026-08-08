@@ -20,6 +20,7 @@ function App() {
   const [ageGenderData, setAgeGenderData] = useState([])
   const [countryData, setCountryData] = useState([])
   const [loading, setLoading] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState(null)
   const [sortConfig, setSortConfig] = useState({ key: 'rawDate', direction: 'desc' })
 
   const [selectedPageIds, setSelectedPageIds] = useState([])
@@ -229,6 +230,7 @@ function App() {
     }
 
     setLoading(false)
+    setLastUpdated(new Date().toLocaleTimeString())
   }
 
   const handleLogout = () => {
@@ -432,6 +434,7 @@ function App() {
             >
               {loading ? <><span className="spinner"></span>Fetching Insights...</> : 'Get Insights'}
             </button>
+            {lastUpdated && <span style={{ marginLeft: '12px', fontSize: '0.9rem', color: '#94a3b8' }}>Last updated: {lastUpdated}</span>}
           </section>
 
           {insights && (
