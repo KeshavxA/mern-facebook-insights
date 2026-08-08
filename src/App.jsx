@@ -32,6 +32,10 @@ function App() {
   const [until, setUntil] = useState(() => new Date().toISOString().split('T')[0])
 
   useEffect(() => {
+    document.title = user ? `Dashboard - Social Analytics` : 'Social Analytics';
+  }, [user]);
+
+  useEffect(() => {
     window.fbAsyncInit = function () {
       window.FB.init({
         appId: APP_ID,
