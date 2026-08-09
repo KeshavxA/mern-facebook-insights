@@ -93,6 +93,7 @@ function App() {
   const fetchPageInsights = async () => {
     if (selectedPageIds.length === 0) return
     setLoading(true)
+    setLastUpdated(null)
 
     let aggregatedInsights = {}
     let aggregatedDailyDataMap = {}
