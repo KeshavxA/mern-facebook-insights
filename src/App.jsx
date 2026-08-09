@@ -483,7 +483,7 @@ function App() {
                   </div>
                 </div>
                 <div className="insight-card">
-                  <span className="label">Total Reactions</span>
+                  <span className="label" title="Total number of reactions on your posts">Total Reactions</span>
                   <div className="multi-values">
                     {insights.page_actions_post_reactions_total?.map((p, i) => (
                       <div key={p.name} style={{ display: 'flex', justifyContent: 'space-between', color: pageColors[i % pageColors.length] }}>
