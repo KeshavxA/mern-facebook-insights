@@ -463,7 +463,7 @@ function App() {
                   </div>
                 </div>
                 <div className="insight-card">
-                  <span className="label">Total Engagement</span>
+                  <span className="label" title="Total number of times people engaged with your posts">Total Engagement</span>
                   <div className="multi-values">
                     {insights.page_post_engagements?.map((p, i) => (
                       <div key={p.name} style={{ display: 'flex', justifyContent: 'space-between', color: pageColors[i % pageColors.length] }}>
