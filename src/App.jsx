@@ -355,6 +355,7 @@ function App() {
             <button
               onClick={handleLogin}
               className="fb-login-btn"
+              title="Sign in with your Facebook account"
               disabled={!sdkLoaded}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
