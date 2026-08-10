@@ -633,7 +633,7 @@ function App() {
           )}
         </section>
       )}
-      <footer className="app-footer">Powered by React & Recharts</footer>
+      <footer className="app-footer">Powered by <a href="https://react.dev" target="_blank" rel="noreferrer" style={{color: '#94a3b8'}}>React</a> & <a href="https://recharts.org" target="_blank" rel="noreferrer" style={{color: '#94a3b8'}}>Recharts</a></footer>
     </main>
   )
 }
