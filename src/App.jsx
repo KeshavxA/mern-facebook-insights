@@ -417,6 +417,7 @@ function App() {
                 <button onClick={() => { const d = new Date(); d.setDate(d.getDate() - 7); setSince(d.toISOString().split('T')[0]); setUntil(new Date().toISOString().split('T')[0]); }} className="btn-outline" style={{ padding: '2px 8px', fontSize: '0.8rem', marginRight: '8px' }}>Last 7 Days</button>
                 <button onClick={() => { const d = new Date(); d.setDate(d.getDate() - 28); setSince(d.toISOString().split('T')[0]); setUntil(new Date().toISOString().split('T')[0]); }} className="btn-outline" style={{ padding: '2px 8px', fontSize: '0.8rem' }}>Last 28 Days</button>
                 <button onClick={() => { const d = new Date(); d.setDate(d.getDate() - 90); setSince(d.toISOString().split('T')[0]); setUntil(new Date().toISOString().split('T')[0]); }} className="btn-outline" style={{ padding: '2px 8px', fontSize: '0.8rem' }}>Last 90 Days</button>
+                <button onClick={() => { const d = new Date(); setSince(new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0]); setUntil(new Date().toISOString().split('T')[0]); }} className="btn-outline" style={{ padding: '2px 8px', fontSize: '0.8rem' }}>This Month</button>
               </div>
               <div className="date-controls">
               <div className="control-group">
