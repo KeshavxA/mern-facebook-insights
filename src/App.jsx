@@ -548,7 +548,7 @@ function App() {
                           <th onClick={() => requestSort('rawDate')} className="sortable-header" title="Click to sort">Date{getSortIcon('rawDate')}</th>
                           <th>Post</th>
                           <th onClick={() => requestSort('reach')} className="sortable-header" title="Sort by Reach">Reach{getSortIcon('reach')}</th>
-                          <th onClick={() => requestSort('engagement')} className="sortable-header" title="Click to sort">Engagements{getSortIcon('engagement')}</th>
+                          <th onClick={() => requestSort('engagement')} className="sortable-header" title="Sort by Engagements">Engagements{getSortIcon('engagement')}</th>
                           <th onClick={() => requestSort('likes')} className="sortable-header" title="Click to sort">Likes{getSortIcon('likes')}</th>
                           <th onClick={() => requestSort('comments')} className="sortable-header" title="Click to sort">Comments{getSortIcon('comments')}</th>
                           <th onClick={() => requestSort('shares')} className="sortable-header" title="Click to sort">Shares{getSortIcon('shares')}</th>
