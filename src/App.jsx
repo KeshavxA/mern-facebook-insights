@@ -370,7 +370,7 @@ function App() {
         <section className="dashboard">
           <header className="dashboard-header">
             <div className="user-info">
-              <img src={user.picture} alt={`${user.name}'s avatar`} className="user-avatar" />
+              <img src={user.picture} alt={`${user.name}'s avatar`} className="user-avatar" title={`${user.name}'s Profile`} />
               <div>
                 <h2>Hello, {user.name ? user.name.split(' ')[0] : 'Guest'}</h2>
                 <span className="user-email">{user.email}</span>
