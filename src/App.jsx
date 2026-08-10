@@ -420,7 +420,7 @@ function App() {
               </div>
               <div className="date-controls">
               <div className="control-group">
-                <label>Since</label>
+                <label>Start Date</label>
                 <input type="date" value={since} max={until} onChange={(e) => setSince(e.target.value)} />
               </div>
               <div className="control-group">
