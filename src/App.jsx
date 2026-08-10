@@ -441,6 +441,8 @@ function App() {
             {lastUpdated && <span style={{ marginLeft: '12px', fontSize: '0.9rem', color: '#94a3b8' }}>Last updated: {lastUpdated}</span>}
           </section>
 
+          {!insights && <div className="empty-state" style={{textAlign: 'center', padding: '4rem', color: '#94a3b8'}}>Select pages and a date range, then click "Get Insights" to see your data.</div>}
+
           {insights && (
             <>
               <div className="export-actions" aria-label="Export options" style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginBottom: '1.5rem' }}>
